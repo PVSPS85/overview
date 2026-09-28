@@ -55,8 +55,13 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
 
-function Button({ children, variant = "primary", icon, onClick, type = "button" }: { children: ReactNode; variant?: "primary" | "secondary" | "ghost"; icon?: IconName; onClick?: () => void; type?: "button" | "submit" }) {
-  return <button type={type} className={`button ${variant}`} onClick={onClick}>{children}{icon && <Icon name={icon} />}</button>
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost";
+  icon?: IconName;
+}
+
+function Button({ children, variant = "primary", icon, className = "", ...props }: ButtonProps) {
+  return <button className={`button ${variant} ${className}`} {...props}>{children}{icon && <Icon name={icon} />}</button>
 }
 
 /* ── Motion hooks ── */
@@ -1070,7 +1075,7 @@ function ContactForm() {
         {status === 'error' && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errorMessage}</div>}
         {status === 'success' && <div style={{ color: 'green', fontSize: '0.9rem' }}>Thanks! Your message has been sent successfully.</div>}
         
-        <Button icon="arrow" disabled={status === 'submitting'} onClick={() => {}} style={{ alignSelf: 'flex-start' }}>
+        <Button type="submit" icon="arrow" disabled={status === 'submitting'} style={{ alignSelf: 'flex-start' }}>
           {status === 'submitting' ? 'Sending...' : 'Send Message'}
         </Button>
       </form>
