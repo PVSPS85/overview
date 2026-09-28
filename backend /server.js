@@ -450,6 +450,24 @@ const validateHackathonInput = (body) => {
   if (!['Published', 'Draft', 'Private'].includes(visibility)) errors.push('Invalid visibility state.');
   return errors;
 };
+const validateProfileInput = (body) => {
+  const { full_name, headline, short_bio, availability_status, github_url, linkedin_url, email } = body;
+  const errors = [];
+  if (!full_name || !full_name.trim()) errors.push('Name is required.');
+  if (!headline || !headline.trim()) errors.push('Headline is required.');
+  if (short_bio && short_bio.length > 500) errors.push('Introduction is too long.');
+  if (availability_status && availability_status.length > 100) errors.push('Status is too long.');
+
+  const urlPattern = /^https?:\/\/.+/;
+  if (github_url && !urlPattern.test(github_url)) errors.push('Invalid GitHub URL');
+  if (linkedin_url && !urlPattern.test(linkedin_url)) errors.push('Invalid LinkedIn URL');
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (email && !emailPattern.test(email)) errors.push('Invalid email format');
+
+  return errors;
+};
+
 // PUT Update Profile
 app.put('/api/profile', requireAuth, requireAdmin, async (req, res) => {
   try {
