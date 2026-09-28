@@ -1,0 +1,10 @@
+{
+  "description": "Showcases a computer science student's projects, achievements, and research with a sleek public portfolio and a secure admin dashboard for easy content management.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
