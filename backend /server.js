@@ -174,9 +174,9 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   }
 
   try {
-    const supabase = getAuthClient(req);
+    const adminSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
     // 1. Store in DB (pending)
-    const { data: dbMsg, error: dbError } = await supabase.from('contact_messages').insert({
+    const { data: dbMsg, error: dbError } = await adminSupabase.from('contact_messages').insert({
       sender_name: name.trim(),
       sender_email: email.trim(),
       message: message.trim(),
@@ -189,7 +189,6 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     res.status(200).json({ message: 'Your message was received successfully.' });
 
     // 2. Attempt Email Delivery
-    const adminSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
     
     try {
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.CONTACT_DESTINATION_EMAIL) {
