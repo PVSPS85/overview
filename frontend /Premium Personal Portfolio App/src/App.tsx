@@ -51,8 +51,8 @@ const paths: Record<IconName, ReactNode> = {
   x: <path d="M6 6l12 12M18 6 6 18" />,
 }
 
-function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
-  return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
+function Icon({ name, size = 18, style }: { name: IconName; size?: number; style?: React.CSSProperties }) {
+  return <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{paths[name]}</svg>
 }
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -129,38 +129,8 @@ function Toasts({ items, dismiss }: { items: ToastData[]; dismiss: (id: number) 
   )
 }
 
-type Project = {
-  id: string
-  title: string
-  description: string
-  category: string
-  tech_stack: string[]
-  cover_image_url: string | null
-  project_date: string | null
-  github_url: string | null
-  live_demo_url: string | null
-  organization: string | null
-  other_url: string | null
-  visibility: string
-  published_at: string | null
-  created_at: string | null
-  updated_at: string | null
-}
 
 
-function isValidProjectUrl(value?: string | null): value is string {
-  if (!value) return false
-  try {
-    const url = new URL(value)
-    return url.protocol === "http:" || url.protocol === "https:"
-  } catch {
-    return false
-  }
-}
-
-function openProjectUrl(url: string) {
-  window.open(url, "_blank", "noopener,noreferrer")
-}
 
 type Certification = {
   id: string
@@ -178,34 +148,6 @@ type Certification = {
   signedUrl?: string | null // For frontend rendering
 }
 
-type Hackathon = {
-  id: string
-  event_name: string
-  event_year: string
-  project_name: string
-  role: string
-  result: string | null
-  tech_stack: string
-  description: string | null
-  event_link: string | null
-  project_link: string | null
-  visibility: string
-  published_at: string | null
-  created_at: string | null
-  updated_at: string | null
-}
-
-type Achievement = {
-  id: string
-  title: string
-  description: string | null
-  achievement_date: string
-  category: string
-  visibility: string
-  published_at: string | null
-  created_at: string | null
-  updated_at: string | null
-}
 
 type Profile = {
   id: string
@@ -565,140 +507,6 @@ function About({ profile }: { profile: Profile | null }) {
   )
 }
 
-function Projects() {
-  const [ref, visible] = useReveal(0.08)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [filter, setFilter] = useState("All")
-  const [selected, setSelected] = useState<Project | null>(null)
-  const [unavailableDemo, setUnavailableDemo] = useState<Project | null>(null)
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/projects`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setProjects(data)
-        } else {
-          setProjects([])
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        setError(true)
-        setLoading(false)
-      })
-  }, [])
-
-  const categories = Array.from(new Set(projects.map(p => p.category)))
-  const filters = ["All", ...categories]
-  const shown = filter === "All" ? projects : projects.filter(p => p.category === filter)
-  
-  const showDemo = (project: Project) => {
-    if (isValidProjectUrl(project.live_demo_url)) {
-      openProjectUrl(project.live_demo_url)
-    } else if (isValidProjectUrl(project.github_url)) {
-      setUnavailableDemo(project)
-    }
-  }
-
-  const projectActions = (project: Project, compact = false) => {
-    const hasGithub = isValidProjectUrl(project.github_url)
-    const hasDemo = isValidProjectUrl(project.live_demo_url)
-    if (!hasGithub && !hasDemo) return null
-    return <div className={compact ? "project-card-actions" : "project-link-actions"}>
-      {hasGithub && <Button variant={compact ? "secondary" : "primary"} icon="github" onClick={() => openProjectUrl(project.github_url!)}>{compact ? "View GitHub" : "GitHub Repository"}</Button>}
-      {(hasDemo || hasGithub) && <Button variant="secondary" icon="external" onClick={() => showDemo(project)}>Live Demo</Button>}
-    </div>
-  }
-
-  const getYear = (dateStr: string | null) => {
-    if (!dateStr) return ""
-    return new Date(dateStr).getFullYear().toString()
-  }
-
-  return <section ref={ref} className="section wrap" id="projects">
-    <div className={`section-row reveal${visible ? " visible" : ""}`}>
-      <SectionTitle eyebrow="Selected work" title="Projects built to learn, solve & explore." text="A curated collection of things I've designed, engineered and learned from." />
-      <div className="filters">
-        {filters.map(f => <button key={f} className={filter === f ? "active" : ""} onClick={() => setFilter(f)}>{f}</button>)}
-      </div>
-    </div>
-
-    {loading ? (
-      <div style={{ textAlign: "center", padding: "4rem 0" }}>Loading projects...</div>
-    ) : error ? (
-      <div style={{ textAlign: "center", padding: "4rem 0", color: "#d9534f" }}>Failed to load projects.</div>
-    ) : projects.length === 0 ? (
-      <div style={{ textAlign: "center", padding: "4rem 0", color: "var(--text-secondary)" }}>
-        <p>No projects published yet.</p>
-      </div>
-    ) : (
-      <div className={`project-grid-scene${visible ? " visible" : ""}`}>
-        <div className="project-grid">
-          {shown.map((project, index) => (
-            <article className={`project-card ${index === 0 && filter === "All" ? "featured" : ""}`} key={project.id} onClick={() => setSelected(project)}>
-              <div className={`project-art ${project.cover_image_url || 'neural'}`}>
-                <span className="project-index">0{projects.indexOf(project) + 1}</span>
-                <div className="art-window">
-                  <i /><i /><i />
-                  <div className="art-lines"><b /><b /><b /><b /></div>
-                </div>
-              </div>
-              <div className="project-body">
-                <div className="project-meta"><span>{project.category}</span><span>{getYear(project.project_date) || "Present"}</span></div>
-                <h3>{project.title}</h3>
-                <p>{project.description}</p>
-                <div className="tech-list">{project.tech_stack?.map((t: string) => <span key={t}>{t}</span>)}</div>
-                {project.organization && <div className="project-organization"><span>Built with / For</span><b>{project.organization}</b></div>}
-                <div onClick={e => e.stopPropagation()}>{projectActions(project, true)}</div>
-                <button className="text-link">View case study <Icon name="arrow" /></button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {selected && <div className="modal-backdrop" onMouseDown={() => setSelected(null)}>
-      <div className="project-modal" onMouseDown={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={() => setSelected(null)} aria-label="Close"><Icon name="x" /></button>
-        <div className={`modal-art ${selected.cover_image_url || 'neural'}`}>
-          <div className="eyebrow"><span />Case study · {getYear(selected.project_date) || "Present"}</div>
-          <h2>{selected.title}</h2>
-          <p>{selected.description}</p>
-        </div>
-        <div className="case-grid">
-          <div>
-            <div className="case-section"><span>01 / Overview</span><h3>{selected.title}</h3><p>{selected.description}</p></div>
-          </div>
-          <div>
-            <div className="case-section"><span>Tech Stack</span><ul>{selected.tech_stack?.map(t => <li key={t}>{t}</li>)}</ul></div>
-            {selected.organization && <div className="case-section organization-detail"><span>Built with / For</span><h3>{selected.organization}</h3></div>}
-            <div className="project-links-detail">
-              <span>Project links</span>
-              {projectActions(selected)}
-              {isValidProjectUrl(selected.other_url) && <button className="other-project-link" onClick={() => openProjectUrl(selected.other_url!)}>Other project resource <Icon name="arrow" size={15} /></button>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>}
-    
-    {unavailableDemo && <div className="modal-backdrop demo-unavailable-wrap" onMouseDown={() => setUnavailableDemo(null)}>
-      <div className="demo-unavailable" role="dialog" aria-modal="true" aria-labelledby="demo-unavailable-title" onMouseDown={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={() => setUnavailableDemo(null)} aria-label="Close"><Icon name="x" /></button>
-        <div className="demo-unavailable-icon"><Icon name="external" /></div>
-        <span className="mini-label">Project preview</span>
-        <h2 id="demo-unavailable-title">Live Demo Unavailable</h2>
-        <p>This project isn't currently hosted. You can explore the source code on GitHub instead.</p>
-        {isValidProjectUrl(unavailableDemo.github_url) && <Button icon="github" onClick={() => openProjectUrl(unavailableDemo.github_url!)}>Go to GitHub</Button>}
-      </div>
-    </div>}
-  </section>
-}
-
 function Certifications() {
   const [ref, visible] = useReveal(0.1)
   const [active, setActive] = useState<Certification | null>(null)
@@ -819,210 +627,6 @@ function Certifications() {
 
     </section>
   )
-}
-
-function Hackathons() {
-  const sectionRef = useRef<HTMLElement>(null)
-  const lineRef = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
-  const reduced = useReducedMotion()
-  
-  const [hacks, setHacks] = useState<Hackathon[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchHacks = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/hackathons`)
-        const data = await res.json()
-        setHacks(Array.isArray(data) ? data : [])
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchHacks()
-  }, [])
-
-  /* IntersectionObserver for section heading entrance */
-  useEffect(() => {
-    if (reduced) { setVisible(true); return }
-    const el = sectionRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true) }, { threshold: 0.08 })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [reduced])
-
-  /* Scroll-driven timeline line draw */
-  useEffect(() => {
-    if (reduced || loading || hacks.length === 0) return
-    let raf = 0
-    const update = () => {
-      const section = sectionRef.current
-      const line = lineRef.current
-      if (!section || !line) return
-      const rect = section.getBoundingClientRect()
-      const vh = window.innerHeight
-      const timelineEl = section.querySelector(".timeline") as HTMLElement
-      if (!timelineEl) return
-      /* Progress 0→1 as timeline scrolls through viewport */
-      const p = Math.max(0, Math.min(1, (vh * 0.82 - rect.top) / (rect.height * 0.88)))
-      line.style.height = `${p * timelineEl.clientHeight}px`
-    }
-    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update) }
-    window.addEventListener("scroll", onScroll, { passive: true })
-    update()
-    // Trigger an initial update in case it's already in view after load
-    setTimeout(update, 100)
-    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf) }
-  }, [reduced, loading, hacks.length])
-
-  return (
-    <section ref={sectionRef} className="section wrap" id="hackathons">
-      <div className={`reveal${visible ? " visible" : ""}`}>
-        <SectionTitle eyebrow="Under pressure" title="Hackathons & rapid experiments." />
-      </div>
-      
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "40px" }}>Loading hackathons...</div>
-      ) : hacks.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)" }}>Hackathons will appear here as they are published.</div>
-      ) : (
-        <div className={`timeline${visible ? " visible" : ""}`}>
-          <div className="timeline-line" ref={lineRef} />
-          {hacks.map((h, i) => (
-            <article key={h.id}>
-              <div className="timeline-year">{h.event_year}</div>
-              <div className="timeline-dot"><span /></div>
-              <div className="timeline-content">
-                <span>0{i + 1}</span>
-                <div><p>{h.event_name}</p><h3>{h.project_name}</h3></div>
-                <div><p>Role & result</p><h4>{h.role}{h.result ? ` · ${h.result}` : ""}</h4></div>
-                <div><p>Built with</p><h4>{h.tech_stack}</h4></div>
-                {(h.event_link || h.project_link) && (
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    {h.project_link && <a href={h.project_link} target="_blank" rel="noopener noreferrer" className="text-link">Project <Icon name="external" size={14} /></a>}
-                    {h.event_link && <a href={h.event_link} target="_blank" rel="noopener noreferrer" className="text-link">Event <Icon name="external" size={14} /></a>}
-                  </div>
-                )}
-                {!h.event_link && !h.project_link && <Icon name="chevron" />}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function Journey() {
-  const [ref, visible] = useReveal(0.1)
-  
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState("All")
-
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/achievements`)
-        const data = await res.json()
-        setAchievements(Array.isArray(data) ? data : [])
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchAchievements()
-  }, [])
-  
-  const categories = Array.from(new Set(achievements.map(a => a.category)))
-  const filtered = filter === "All" ? achievements : achievements.filter(a => a.category === filter)
-
-  return (
-    <section ref={ref} className="section wrap" id="achievements">
-      <div className={`reveal${visible ? " visible" : ""}`}>
-        <SectionTitle eyebrow="The journey" title="A timeline of becoming." text="The milestones matter, but the curiosity between them matters more." />
-      </div>
-      
-      {categories.length > 0 && (
-        <div className="filter-row" style={{ display: 'flex', gap: '10px', marginBottom: '40px', overflowX: 'auto', paddingBottom: '10px' }}>
-          <button className={`filter-btn ${filter === "All" ? "active" : ""}`} onClick={() => setFilter("All")}>All</button>
-          {categories.map(c => (
-            <button key={c} className={`filter-btn ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>{c}</button>
-          ))}
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "40px" }}>Loading achievements...</div>
-      ) : achievements.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)" }}>Achievements will appear here as they are published.</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)" }}>No achievements found for this category.</div>
-      ) : (
-        <div className={`journey${visible ? " visible" : ""}`}>
-          {filtered.map((m, i) => (
-            <article key={m.id}>
-              <div className="journey-line"><i className={i === 0 && filter === "All" ? "active" : ""} /></div>
-              <time>{new Date(m.achievement_date).getFullYear()}</time>
-              <div>
-                <span className="mini-label" style={{ marginBottom: '8px', display: 'inline-block' }}>{m.category}</span>
-                <h3>{m.title}</h3>
-                {m.description && <p>{m.description}</p>}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function AskPranav() {
-  const [ref, visible] = useReveal(0.1)
-  const [messages, setMessages] = useState<{ role: "bot" | "user"; text: string }[]>([
-    { role: "bot", text: "Hi — I'm Pranav's portfolio assistant. Ask me about his projects, skills, or experience." }
-  ])
-  const [input, setInput] = useState("")
-  const ask = (text: string) => {
-    if (!text.trim()) return
-    setMessages(m => [...m, { role: "user", text }, { role: "bot", text: text.toLowerCase().includes("project") ? "Pranav's current flagship project is NeuraNotes, an AI-powered research workspace built with React, PyTorch and FastAPI." : "Pranav focuses on applied AI, computer vision and thoughtful product engineering. He's especially interested in efficient models and human–AI interaction." }])
-    setInput("")
-  }
-  return <section ref={ref} className="section ask-section">
-    <div className="wrap ask-grid">
-      <div>
-        <div className={`reveal${visible ? " visible" : ""}`}>
-          <SectionTitle eyebrow="Ask Pranav" title="Curious about something?" text="Chat with my portfolio assistant for a quick answer—or scroll down to send a message directly." />
-        </div>
-        <div className="ask-suggestions">
-          <span>Try asking</span>
-          {["What is Pranav building?", "Tell me about his AI work", "What are his strongest skills?"].map(q => (
-            <button key={q} onClick={() => ask(q)}>{q}<Icon name="arrow" size={15} /></button>
-          ))}
-        </div>
-      </div>
-      <div className="chat">
-        <div className="chat-top">
-          <div className="avatar">P</div>
-          <div><strong>Pranav AI</strong><span><i />Online</span></div>
-          <Icon name="spark" />
-        </div>
-        <div className="chat-messages">
-          {messages.slice(-4).map((m, i) => <div className={`message ${m.role}`} key={i}>{m.text}</div>)}
-        </div>
-        <form className="chat-input" onSubmit={e => { e.preventDefault(); ask(input) }}>
-          <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask me anything..." aria-label="Ask Pranav" />
-          <button aria-label="Send message"><Icon name="arrow" /></button>
-        </form>
-        <small>AI responses are based on portfolio content.</small>
-      </div>
-    </div>
-  </section>
 }
 
 function ContactForm() {
@@ -1367,7 +971,7 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
 function AdminDashboard({ session }: { session: Session | null }) {
   const [section, setSection] = useState("Overview")
   const [showForm, setShowForm] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<Project | null>(null)
+  const [editingEntry, setEditingEntry] = useState<any | null>(null)
   const [toasts, setToasts] = useState<ToastData[]>([])
   const addToast = useCallback((type: ToastData["type"], title: string, msg?: string) => {
     setToasts(t => [...t, { id: ++_tid, type, title, msg }])
@@ -1489,12 +1093,12 @@ function AdminDashboard({ session }: { session: Session | null }) {
   </div>
 }
 
-function ManagementPage({ section, session, onAdd, onEdit }: { section: string; session: Session | null; onAdd: () => void; onEdit: (project: Project) => void }) {
+function ManagementPage({ section, session, onAdd, onEdit }: { section: string; session: Session | null; onAdd: () => void; onEdit: (entry: any) => void }) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
-    if (!["Projects", "Certifications", "Hackathons", "Achievements", "Resume"].includes(section) || !session) {
+    if (!["Certifications", "Resume"].includes(section) || !session) {
       setData([])
       setLoading(false)
       return
@@ -1564,8 +1168,8 @@ function ManagementPage({ section, session, onAdd, onEdit }: { section: string; 
       ) : data.map((row) => (
         <div className="table-row" key={row.id}>
           <div className="row-title">
-            <div className={`row-thumb thumb-0`}><Icon name={section === "Projects" ? "code" : section === "Certifications" ? "award" : section === "Hackathons" ? "briefcase" : section === "Resume" ? "download" : "spark"} /></div>
-            <span><b>{row.title || row.event_name || 'Resume'}</b><small>Portfolio item</small></span>
+            <div className={`row-thumb thumb-0`}><Icon name={section === "Certifications" ? "award" : section === "Resume" ? "download" : "spark"} /></div>
+            <span><b>{row.title || 'Resume'}</b><small>Portfolio item</small></span>
           </div>
           <span>{row.category || section}</span>
           <span className="table-ts">{new Date(row.updated_at).toLocaleDateString()}</span>

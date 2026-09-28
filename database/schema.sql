@@ -40,23 +40,6 @@ When I''m not coding, I''m reading about ML architectures, exploring how technol
 );
 
 -- Projects
-CREATE TABLE projects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  category TEXT NOT NULL,
-  tech_stack TEXT[] NOT NULL,
-  cover_image_url TEXT,
-  project_date DATE,
-  github_url TEXT,
-  live_demo_url TEXT,
-  organization TEXT,
-  other_url TEXT,
-  visibility TEXT NOT NULL DEFAULT 'Published', -- 'Published', 'Draft', 'Private'
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  published_at TIMESTAMP WITH TIME ZONE
-);
 
 -- Certifications
 CREATE TABLE certifications (
@@ -75,35 +58,8 @@ CREATE TABLE certifications (
 );
 
 -- Hackathons
-CREATE TABLE hackathons (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  event_name TEXT NOT NULL,
-  event_year TEXT NOT NULL,
-  project_name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  result TEXT,
-  tech_stack TEXT NOT NULL,
-  description TEXT,
-  event_link TEXT,
-  project_link TEXT,
-  visibility TEXT NOT NULL DEFAULT 'Published',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  published_at TIMESTAMP WITH TIME ZONE
-);
 
 -- Achievements
-CREATE TABLE achievements (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  achievement_date DATE,
-  category TEXT NOT NULL,
-  visibility TEXT NOT NULL DEFAULT 'Published',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  published_at TIMESTAMP WITH TIME ZONE
-);
 
 -- Resumes
 CREATE TABLE resumes (
@@ -161,17 +117,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE POLICY "Public can view profile" ON profile FOR SELECT USING (true);
 
-CREATE POLICY "Public can view published projects" ON projects 
-  FOR SELECT USING (visibility = 'Published');
 
 CREATE POLICY "Public can view published certifications" ON certifications 
   FOR SELECT USING (visibility = 'Published');
 
-CREATE POLICY "Public can view published hackathons" ON hackathons 
-  FOR SELECT USING (visibility = 'Published');
 
-CREATE POLICY "Public can view published achievements" ON achievements 
-  FOR SELECT USING (visibility = 'Published');
 
 CREATE POLICY "Public can view published resumes" ON resumes 
   FOR SELECT USING (visibility = 'Published');
@@ -189,17 +139,11 @@ CREATE POLICY "Admin has full access to admin_users" ON admin_users
 CREATE POLICY "Admin has full access to profile" ON profile 
   FOR ALL USING (is_admin());
 
-CREATE POLICY "Admin has full access to projects" ON projects 
-  FOR ALL USING (is_admin());
 
 CREATE POLICY "Admin has full access to certifications" ON certifications 
   FOR ALL USING (is_admin());
 
-CREATE POLICY "Admin has full access to hackathons" ON hackathons 
-  FOR ALL USING (is_admin());
 
-CREATE POLICY "Admin has full access to achievements" ON achievements 
-  FOR ALL USING (is_admin());
 
 CREATE POLICY "Admin has full access to resumes" ON resumes 
   FOR ALL USING (is_admin());
@@ -220,10 +164,6 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_profile_modtime BEFORE UPDATE ON profile FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_projects_modtime BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_certifications_modtime BEFORE UPDATE ON certifications FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_hackathons_modtime BEFORE UPDATE ON hackathons FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_achievements_modtime BEFORE UPDATE ON achievements FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_resumes_modtime BEFORE UPDATE ON resumes FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
 -- ==========================================
@@ -233,7 +173,6 @@ CREATE TRIGGER update_resumes_modtime BEFORE UPDATE ON resumes FOR EACH ROW EXEC
 -- Create Private Buckets
 INSERT INTO storage.buckets (id, name, public) VALUES 
 ('certificates', 'certificates', false),
-('project-media', 'project-media', false),
 ('profile-media', 'profile-media', false),
 ('resumes', 'resumes', false)
 ON CONFLICT (id) DO NOTHING;
@@ -242,10 +181,6 @@ ON CONFLICT (id) DO NOTHING;
 -- Note: storage.objects table should have RLS enabled by default in Supabase
 
 CREATE POLICY "Admin full access to project-media" ON storage.objects
-  FOR ALL USING (bucket_id = 'project-media' AND is_admin());
-
-CREATE POLICY "Admin full access to certificates" ON storage.objects
-  FOR ALL USING (bucket_id = 'certificates' AND is_admin());
 
 CREATE POLICY "Admin full access to profile-media" ON storage.objects
   FOR ALL USING (bucket_id = 'profile-media' AND is_admin());
