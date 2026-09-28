@@ -213,6 +213,11 @@ type Profile = {
   linkedin_url: string | null
   email: string | null
   resume_url: string | null
+  about_title: string | null
+  about_lead: string | null
+  about_body: string | null
+  technologies: string | null
+  interests: string | null
 }
 
 type Resume = {
@@ -511,24 +516,30 @@ function Currently() {
   )
 }
 
-function About() {
+function About({ profile }: { profile: Profile | null }) {
   const [ref, visible] = useReveal(0.1)
-  const technologies = ["Python", "TypeScript", "React", "Node.js", "PyTorch", "FastAPI", "PostgreSQL", "Next.js", "OpenCV", "Docker"]
-  const interests = ["Applied AI", "Computer Vision", "Developer Tools", "Human–AI Interaction", "Open Source"]
+  const technologies = profile?.technologies ? profile.technologies.split(',').map(s => s.trim()).filter(Boolean) : ["Python", "TypeScript", "React", "Node.js", "PyTorch", "FastAPI", "PostgreSQL", "Next.js", "OpenCV", "Docker"]
+  const interests = profile?.interests ? profile.interests.split(',').map(s => s.trim()).filter(Boolean) : ["Applied AI", "Computer Vision", "Developer Tools", "Human–AI Interaction", "Open Source"]
+
+  const title = profile?.about_title || "Curious by nature. Intentional by design."
+  const lead = profile?.about_lead || "I'm a computer science student interested in building intelligent systems that solve meaningful, human problems."
+  const bodyText = profile?.about_body || "I enjoy moving between learning and building—understanding the theory deeply, then turning it into software people can actually use. I'm especially drawn to applied AI and the intersection of deep learning and product engineering.\n\nWhen I'm not coding, I'm reading about ML architectures, exploring how technology can be designed with more intention, or working on something new."
+  
+  const paragraphs = bodyText.split('\n').filter(p => p.trim() !== '')
 
   return (
     <section ref={ref} className="section wrap about" id="about">
-      {/* Depth decoration blobs — move at different parallax speed from content */}
       <div className="about-depth-blob" style={{ width: 320, height: 320, background: "#D9E4F0", top: -60, right: -80 }} />
       <div className="about-depth-blob" style={{ width: 220, height: 220, background: "#EAE3D2", bottom: 40, left: -60 }} />
       <div className={`reveal${visible ? " visible" : ""}`}>
-        <SectionTitle eyebrow="About me" title="Curious by nature. Intentional by design." />
+        <SectionTitle eyebrow="About me" title={title} />
       </div>
       <div className="about-grid">
         <div className={`about-copy reveal sd-1${visible ? " visible" : ""}`}>
-          <p className="lead">I'm a computer science student interested in building intelligent systems that solve meaningful, human problems.</p>
-          <p>I enjoy moving between learning and building—understanding the theory deeply, then turning it into software people can actually use. I'm especially drawn to applied AI and the intersection of deep learning and product engineering.</p>
-          <p>When I'm not coding, I'm reading about ML architectures, exploring how technology can be designed with more intention, or working on something new.</p>
+          <p className="lead">{lead}</p>
+          {paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
         </div>
         <div className={`about-side reveal sd-2${visible ? " visible" : ""}`}>
           <div className="about-side-block">
@@ -1067,10 +1078,21 @@ function Footer() {
 }
 
 function PublicPortfolio() {
+  const [profile, setProfile] = useState<Profile | null>(null)
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.full_name) setProfile(data)
+      })
+      .catch(console.error)
+  }, [])
+
   return <div className="public-site">
     <ScrollProgress />
     <Header />
-    <main><Hero /><About /><Projects /><Certifications /><AskPranav /><ContactForm /></main>
+    <main><Hero /><About profile={profile} /><Projects /><Certifications /><AskPranav /><ContactForm /></main>
     <Footer />
   </div>
 }
@@ -1199,6 +1221,31 @@ function ProfileEditor({ session, addToast }: { session: Session | null; addToas
             </div>
           </label>
           <label>Short Bio<textarea value={profile.short_bio || ''} onChange={e => setProfile({ ...profile, short_bio: e.target.value })} rows={3} /></label>
+
+          <hr style={{ margin: "30px 0", border: "none", borderTop: "1px solid var(--line)" }} />
+          <h3>About Me Section</h3>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "20px", fontSize: "0.9rem" }}>Update the content shown in the 'About Me' section of your portfolio.</p>
+
+          <div className="form-grid">
+            <label>About Title (Max 60 chars)
+              <input value={profile.about_title || ''} maxLength={60} onChange={e => setProfile({ ...profile, about_title: e.target.value })} placeholder="Curious by nature. Intentional by design." />
+            </label>
+            <label>Technologies (Comma separated)
+              <input value={profile.technologies || ''} onChange={e => setProfile({ ...profile, technologies: e.target.value })} placeholder="Python, TypeScript, React" />
+            </label>
+          </div>
+
+          <label>About Lead Paragraph (Max 150 chars)
+            <textarea value={profile.about_lead || ''} maxLength={150} onChange={e => setProfile({ ...profile, about_lead: e.target.value })} rows={2} placeholder="I'm a computer science student..." />
+          </label>
+
+          <label>About Body (Paragraphs)
+            <textarea value={profile.about_body || ''} onChange={e => setProfile({ ...profile, about_body: e.target.value })} rows={6} placeholder="I enjoy moving between learning and building..." />
+          </label>
+
+          <label>Areas of Interest (Comma separated)
+            <input value={profile.interests || ''} onChange={e => setProfile({ ...profile, interests: e.target.value })} placeholder="Applied AI, Computer Vision, Open Source" />
+          </label>
         </form>
       </div>
     </div>

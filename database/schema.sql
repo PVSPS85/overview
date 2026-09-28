@@ -28,6 +28,13 @@ CREATE TABLE profile (
   linkedin_url TEXT,
   email TEXT,
   resume_url TEXT,
+  about_title TEXT DEFAULT 'Curious by nature. Intentional by design.',
+  about_lead TEXT DEFAULT 'I''m a computer science student interested in building intelligent systems that solve meaningful, human problems.',
+  about_body TEXT DEFAULT 'I enjoy moving between learning and building—understanding the theory deeply, then turning it into software people can actually use. I''m especially drawn to applied AI and the intersection of deep learning and product engineering.
+
+When I''m not coding, I''m reading about ML architectures, exploring how technology can be designed with more intention, or working on something new.',
+  technologies TEXT DEFAULT 'Python, TypeScript, React, Node.js, PyTorch, FastAPI, PostgreSQL, Next.js, OpenCV, Docker',
+  interests TEXT DEFAULT 'Applied AI, Computer Vision, Developer Tools, Human–AI Interaction, Open Source',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -863,6 +863,11 @@ app.put('/api/profile', requireAuth, requireAdmin, async (req, res) => {
       github_url: req.body.github_url ? req.body.github_url.trim() : null,
       linkedin_url: req.body.linkedin_url ? req.body.linkedin_url.trim() : null,
       email: req.body.email ? req.body.email.trim() : null,
+      about_title: req.body.about_title ? req.body.about_title.trim() : null,
+      about_lead: req.body.about_lead ? req.body.about_lead.trim() : null,
+      about_body: req.body.about_body ? req.body.about_body.trim() : null,
+      technologies: req.body.technologies ? req.body.technologies.trim() : null,
+      interests: req.body.interests ? req.body.interests.trim() : null,
       updated_at: new Date().toISOString()
     };
 
