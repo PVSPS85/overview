@@ -272,7 +272,7 @@ function Header() {
       <header className="site-header">
         <a className="logo" href="#top" aria-label="Pranav home">P<span>.</span></a>
         <nav className={open ? "nav open" : "nav"}>
-          {["About", "Projects", "Certifications", "Hackathons", "Achievements"].map((item) => (
+          {["About", "Projects", "Certifications"].map((item) => (
             <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setOpen(false)}>{item}</a>
           ))}
           <a className="nav-admin-link" href="/admin" onClick={() => setOpen(false)}>
@@ -305,13 +305,13 @@ function Hero() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`)
         if (!res.ok) return
         const data = await res.json()
         if (data && data.full_name) {
           setProfile(data)
           if (data.profile_photo_url) {
-            const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/storage/signed-url?bucket=profile-media&path=${data.profile_photo_url}`)
+            const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=profile-media&path=${data.profile_photo_url}`)
             if (sRes.ok) {
               const { signedUrl } = await sRes.json()
               setPhotoUrl(signedUrl)
@@ -324,11 +324,11 @@ function Hero() {
     }
     const fetchResume = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/resume/current`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/resume/current`)
         if (!res.ok) return
         const data = await res.json()
         if (data && data.resume_url) {
-          const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/storage/signed-url?bucket=resumes&path=${data.resume_url}`)
+          const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=resumes&path=${data.resume_url}`)
           if (sRes.ok) {
             const { signedUrl } = await sRes.json()
             setResumeUrl(signedUrl)
@@ -414,11 +414,20 @@ function Hero() {
             <a className="button primary" href="#projects">
               Explore My Work <Icon name="arrow" />
             </a>
-            {resumeUrl && (
-              <a className="button secondary" href={resumeUrl} target="_blank" rel="noopener noreferrer">
-                Download Resume <Icon name="download" />
-              </a>
-            )}
+            <a 
+              className="button secondary" 
+              href={resumeUrl || "#"} 
+              target={resumeUrl ? "_blank" : undefined} 
+              rel="noopener noreferrer"
+              onClick={e => {
+                if (!resumeUrl) {
+                  e.preventDefault()
+                  alert("No resume has been uploaded yet. Please log into the Admin panel and upload your Resume PDF in the Profile section.")
+                }
+              }}
+            >
+              Download Resume <Icon name="download" />
+            </a>
           </div>
         </div>
 
@@ -550,7 +559,7 @@ function Projects() {
   const [unavailableDemo, setUnavailableDemo] = useState<Project | null>(null)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/projects`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -683,14 +692,14 @@ function Certifications() {
   useEffect(() => {
     const fetchCerts = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/certifications`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/certifications`)
         let data: Certification[] = await res.json()
         
         // Fetch signed URLs for certificates
         data = await Promise.all(data.map(async (cert) => {
           if (cert.certificate_url) {
             try {
-              const urlRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/storage/signed-url?bucket=certificates&path=${encodeURIComponent(cert.certificate_url)}`)
+              const urlRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=certificates&path=${encodeURIComponent(cert.certificate_url)}`)
               if (urlRes.ok) {
                 const urlData = await urlRes.json()
                 cert.signedUrl = urlData.signedUrl
@@ -727,13 +736,21 @@ function Certifications() {
         {certs.map((cert, index) => (
           <article className="certificate-card" key={cert.id}>
             <div className="certificate-preview">
-              <div className="cert-sheet">
-                <span className="cert-mark">{cert.mark}</span>
-                <small>Certificate of completion</small>
-                <b>{cert.title}</b>
-                <i />
-                <p>Presented to Pranav</p>
-              </div>
+              {cert.signedUrl && !cert.signedUrl.toLowerCase().includes('.pdf') && !cert.signedUrl.includes('pdf?') ? (
+                <img 
+                  src={cert.signedUrl} 
+                  alt={cert.title} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} 
+                />
+              ) : (
+                <div className="cert-sheet">
+                  <span className="cert-mark">{cert.mark || cert.title.substring(0, 2).toUpperCase()}</span>
+                  <small>Certificate of completion</small>
+                  <b>{cert.title}</b>
+                  <i />
+                  <p>Presented to Pranav</p>
+                </div>
+              )}
               <span>0{index + 1}</span>
             </div>
             <div className="certificate-body">
@@ -790,7 +807,7 @@ function Hackathons() {
   useEffect(() => {
     const fetchHacks = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/hackathons`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/hackathons`)
         const data = await res.json()
         setHacks(Array.isArray(data) ? data : [])
       } catch (e) {
@@ -884,7 +901,7 @@ function Journey() {
   useEffect(() => {
     const fetchAchievements = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/achievements`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/achievements`)
         const data = await res.json()
         setAchievements(Array.isArray(data) ? data : [])
       } catch (e) {
@@ -992,7 +1009,7 @@ function ContactForm() {
     e.preventDefault()
     setStatus('submitting')
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -1017,16 +1034,16 @@ function ContactForm() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
             Name
-            <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)' }} disabled={status === 'submitting'} />
+            <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--text)' }} disabled={status === 'submitting'} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
             Email
-            <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)' }} disabled={status === 'submitting'} />
+            <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--text)' }} disabled={status === 'submitting'} />
           </label>
         </div>
         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
           Message
-          <textarea rows={5} value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', resize: 'vertical' }} disabled={status === 'submitting'} />
+          <textarea rows={5} value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} required style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--text)', resize: 'vertical' }} disabled={status === 'submitting'} />
         </label>
         
         {status === 'error' && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errorMessage}</div>}
@@ -1052,17 +1069,17 @@ function PublicPortfolio() {
   return <div className="public-site">
     <ScrollProgress />
     <Header />
-    <main><Hero /><Currently /><About /><Projects /><Certifications /><Hackathons /><Journey /><AskPranav /><ContactForm /></main>
+    <main><Hero /><Currently /><About /><Projects /><Certifications /><Journey /><AskPranav /><ContactForm /></main>
     <Footer />
   </div>
 }
 
 const adminSections = [
-  ["Overview", "grid"], ["Projects", "code"], ["Certifications", "award"], ["Hackathons", "briefcase"], ["Achievements", "spark"], ["Profile & Photo", "user"], ["Resume", "download"], ["Messages", "mail"], ["Settings", "settings"],
+  ["Overview", "grid"], ["Projects", "code"], ["Certifications", "award"], ["Profile & Photo", "user"], ["Resume", "download"], ["Messages", "mail"], ["Settings", "settings"],
 ] as [string, IconName][]
 
 function AdminLogin() {
-  const [email, setEmail] = useState("pranav@example.com")
+  const [email, setEmail] = useState("pvsaipranav2007@gmail.com")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1113,7 +1130,7 @@ function ProfileEditor({ session, addToast }: { session: Session | null; addToas
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`)
       .then(res => res.json())
       .then(data => { if (data && data.full_name) setProfile(data) })
       .catch(console.error)
@@ -1124,7 +1141,7 @@ function ProfileEditor({ session, addToast }: { session: Session | null; addToas
     if (!session) return
     setLoading(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify(profile)
@@ -1134,7 +1151,7 @@ function ProfileEditor({ session, addToast }: { session: Session | null; addToas
       if (file) {
         const formData = new FormData()
         formData.append("file", file)
-        const photoRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile/photo`, {
+        const photoRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile/photo`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${session.access_token}` },
           body: formData
@@ -1195,7 +1212,7 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
   const fetchMessages = useCallback(async () => {
     if (!session) return
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/messages`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/admin/messages`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       })
       const data = await res.json()
@@ -1212,7 +1229,7 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
   const toggleRead = async (id: string, current: boolean) => {
     if (!session) return
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/messages/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/admin/messages/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ is_read: !current })
@@ -1224,7 +1241,7 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
   const deleteMessage = async (id: string) => {
     if (!session || !confirm("Delete this message?")) return
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/messages/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/admin/messages/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       })
@@ -1298,11 +1315,21 @@ function AdminDashboard({ session }: { session: Session | null }) {
     setEditingEntry(null)
     setShowForm(true)
   }
+  const [overviewCounts, setOverviewCounts] = useState<Record<string, number>>({ projects: 0, certifications: 0, hackathons: 0, achievements: 0 })
+  useEffect(() => {
+    if (!session) return
+    const headers = { 'Authorization': `Bearer ${session.access_token}` }
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+    Promise.all([
+      fetch(`${base}/api/admin/projects`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
+      fetch(`${base}/api/admin/certifications`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
+      fetch(`${base}/api/admin/hackathons`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
+      fetch(`${base}/api/admin/achievements`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
+    ]).then(([p, c, h, a]) => setOverviewCounts({ projects: p, certifications: c, hackathons: h, achievements: a }))
+  }, [session, section])
   const cards = [
-    ["Projects", "12", "+2 this month", "code"],
-    ["Certifications", "08", "+1 this month", "award"],
-    ["Hackathons", "06", "3 finalist results", "briefcase"],
-    ["Achievements", "15", "+3 this year", "spark"]
+    ["Projects", String(overviewCounts.projects).padStart(2, '0'), "Total entries", "code"],
+    ["Certifications", String(overviewCounts.certifications).padStart(2, '0'), "Total entries", "award"]
   ] as [string, string, string, IconName][]
 
   return <div className="admin">
@@ -1367,19 +1394,9 @@ function AdminDashboard({ session }: { session: Session | null }) {
                 <div><h3>Recent activity</h3><p>Latest updates across your portfolio</p></div>
                 <button>View all <Icon name="arrow" size={14} /></button>
               </div>
-              {[
-                ["Project updated", "NeuraNotes — AI Research Workspace", "27 Sep · 3:14 PM", "code"],
-                ["Certificate added", "Machine Learning Specialization", "27 Sep · 10:02 AM", "award"],
-                ["Achievement published", "HackVerse 5.0 Finalist", "26 Sep · 4:45 PM", "spark"],
-                ["Hackathon added", "Smart India Hackathon 2024", "25 Sep · 2:11 PM", "briefcase"]
-              ].map(([type, title, time, icon]) => (
-                <div className="activity" key={title}>
-                  <div className="activity-icon"><Icon name={icon as IconName} /></div>
-                  <div><span>{type}</span><h4>{title}</h4></div>
-                  <time>{time}</time>
-                  <button aria-label="More options">•</button>
-                </div>
-              ))}
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <p>Activity will appear here as you manage your portfolio.</p>
+              </div>
             </section>
 
             <section className="quick-panel">
@@ -1429,7 +1446,7 @@ function ManagementPage({ section, session, onAdd, onEdit }: { section: string; 
     setLoading(true)
     try {
       let endpoint = section === "Resume" ? '/api/admin/resumes' : `/api/admin/${section.toLowerCase()}`
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       })
       const result = await res.json()
@@ -1449,7 +1466,7 @@ function ManagementPage({ section, session, onAdd, onEdit }: { section: string; 
     if (!session || !confirm(`Are you sure you want to delete this ${section === "Resume" ? "resume" : section.slice(0, -1).toLowerCase()}?`)) return
     try {
       let endpoint = section === "Resume" ? `/api/resumes/${id}` : `/api/${section.toLowerCase()}/${id}`
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${endpoint}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       })
@@ -1516,7 +1533,7 @@ function AdminForm({ section, session, entry, onClose, onSave }: { section: stri
   
   const [formData, setFormData] = useState<any>(entry || {
     title: '', description: '', category: '', tech_stack: [],
-    github_url: '', live_demo_url: '', organization: '', other_url: '', visibility: 'Draft',
+    github_url: '', live_demo_url: '', organization: '', other_url: '', visibility: 'Published',
     issuer: '', issue_date: '', credential_url: '',
     event_name: '', event_year: '', project_name: '', role: '', result: '', event_link: '', project_link: '',
     achievement_date: ''
@@ -1535,8 +1552,8 @@ function AdminForm({ section, session, entry, onClose, onSave }: { section: stri
     try {
       let endpoint = `/api/${section.toLowerCase()}`
       const url = entry 
-        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${endpoint}/${entry.id}` 
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${endpoint}`
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}/${entry.id}` 
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}`
       
       const requiresUpload = isProject || isCert || isResume
       
@@ -1696,7 +1713,7 @@ function AdminForm({ section, session, entry, onClose, onSave }: { section: stri
         </fieldset>}
         <div className="form-grid">
           <label>Visibility
-            <select value={formData.visibility || 'Draft'} onChange={e => setFormData({...formData, visibility: e.target.value})}>
+            <select value={formData.visibility || 'Published'} onChange={e => setFormData({...formData, visibility: e.target.value})}>
               <option value="Published">Published</option>
               <option value="Draft">Draft</option>
               <option value="Private">Private</option>
