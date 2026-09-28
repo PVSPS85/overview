@@ -1107,7 +1107,7 @@ function PublicPortfolio() {
 }
 
 const adminSections = [
-  ["Overview", "grid"], ["Certifications", "award"], ["Profile & Photo", "user"], ["Resume", "download"], ["Messages", "mail"], ["Settings", "settings"],
+  ["Overview", "grid"], ["Certifications", "award"], ["Profile & Photo", "user"], ["Resume", "download"], ["Messages", "mail"]
 ] as [string, IconName][]
 
 function AdminLogin() {
