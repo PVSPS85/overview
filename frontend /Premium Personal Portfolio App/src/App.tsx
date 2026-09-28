@@ -1385,7 +1385,6 @@ function AdminDashboard({ session }: { session: Session | null }) {
     ]).then(([p, c, h, a]) => setOverviewCounts({ projects: p, certifications: c, hackathons: h, achievements: a }))
   }, [session, section])
   const cards = [
-    ["Projects", String(overviewCounts.projects).padStart(2, '0'), "Total entries", "code"],
     ["Certifications", String(overviewCounts.certifications).padStart(2, '0'), "Total entries", "award"]
   ] as [string, string, string, IconName][]
 
@@ -1458,11 +1457,6 @@ function AdminDashboard({ session }: { session: Session | null }) {
 
             <section className="quick-panel">
               <div className="panel-title"><div><h3>Quick actions</h3><p>Fast management</p></div></div>
-              <button onClick={openNewEntry}>
-                <div className="activity-icon"><Icon name="plus" /></div>
-                <span><b>Add new project</b><small>Upload case study & tech stack</small></span>
-                <Icon name="chevron" size={14} />
-              </button>
               <button onClick={() => setSection("Profile & Photo")}>
                 <div className="activity-icon"><Icon name="user" /></div>
                 <span><b>Update profile photo</b><small>Replace main hero portrait</small></span>
