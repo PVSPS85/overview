@@ -1550,7 +1550,7 @@ function AdminForm({ section, session, entry, onClose, onSave }: { section: stri
     setLoading(true)
     
     try {
-      let endpoint = `/api/${section.toLowerCase()}`
+      let endpoint = `/api/${section.toLowerCase() === 'resume' ? 'resumes' : section.toLowerCase()}`
       const url = entry 
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}/${entry.id}` 
         : `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${endpoint}`
