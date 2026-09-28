@@ -888,13 +888,12 @@ app.post('/api/profile/photo', requireAuth, requireAdmin, upload.single('file'),
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const supabase = getAuthClient(req);
-    const id = crypto.randomUUID();
+    // Get existing profile to determine ID
+    const { data: existingProfile } = await supabase.from('profile').select('id, profile_photo_url').limit(1).maybeSingle();
+    const id = existingProfile ? existingProfile.id : crypto.randomUUID();
     
     // Upload new photo
     const profile_photo_url = await uploadToSupabase(supabase, req.file, 'profile-media', id, 5, ['jpg', 'jpeg', 'png', 'webp'], ['image/jpeg', 'image/png', 'image/webp']);
-    
-    // Get existing profile to remove old photo safely
-    const { data: existingProfile } = await supabase.from('profile').select('id, profile_photo_url').limit(1).single();
     
     let result;
     if (existingProfile) {
@@ -907,7 +906,7 @@ app.post('/api/profile/photo', requireAuth, requireAdmin, upload.single('file'),
         await supabase.storage.from('profile-media').remove([oldUrl]).catch(console.error);
       }
     } else {
-      const { data, error } = await supabase.from('profile').insert([{ profile_photo_url }]).select().single();
+      const { data, error } = await supabase.from('profile').insert([{ id, profile_photo_url }]).select().single();
       if (error) throw error;
       result = data;
     }
