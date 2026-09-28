@@ -117,7 +117,7 @@ app.get('/api/certifications', async (req, res) => {
       .from('certifications')
       .select('id, title, issuer, issue_date, category, mark, certificate_url, credential_url, published_at')
       .eq('visibility', 'Published')
-      .order('issue_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     res.status(200).json(data);

@@ -747,13 +747,22 @@ function Certifications() {
         {certs.map((cert, index) => (
           <article className="certificate-card" key={cert.id}>
             <div className="certificate-preview">
-              {cert.signedUrl && !cert.signedUrl.toLowerCase().includes('.pdf') && !cert.signedUrl.includes('pdf?') ? (
-                <img 
-                  src={cert.signedUrl} 
-                  loading="lazy"
-                  alt={cert.title} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} 
-                />
+              {cert.signedUrl ? (
+                !cert.signedUrl.toLowerCase().includes('.pdf') && !cert.signedUrl.includes('pdf?') ? (
+                  <img 
+                    src={cert.signedUrl} 
+                    loading="lazy"
+                    alt={cert.title} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} 
+                  />
+                ) : (
+                  <iframe 
+                    src={`${cert.signedUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                    style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', pointerEvents: 'none' }} 
+                    tabIndex={-1} 
+                    title={cert.title}
+                  />
+                )
               ) : (
                 <div className="cert-sheet">
                   <span className="cert-mark">{cert.mark || cert.title.substring(0, 2).toUpperCase()}</span>
