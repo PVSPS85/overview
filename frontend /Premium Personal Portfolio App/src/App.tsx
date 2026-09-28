@@ -277,7 +277,7 @@ function Header() {
       <header className="site-header">
         <a className="logo" href="#top" aria-label="Pranav home">P<span>.</span></a>
         <nav className={open ? "nav open" : "nav"}>
-          {["About", "Projects", "Certifications"].map((item) => (
+          {["About", "Certifications"].map((item) => (
             <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setOpen(false)}>{item}</a>
           ))}
           <a className="nav-admin-link" href="/admin" onClick={() => setOpen(false)}>
@@ -1101,7 +1101,7 @@ function PublicPortfolio() {
   return <div className="public-site">
     <ScrollProgress />
     <Header />
-    <main><Hero /><About profile={profile} /><Projects /><Certifications /><AskPranav /><ContactForm /></main>
+    <main><Hero /><About profile={profile} /><Certifications /><AskPranav /><ContactForm /></main>
     <Footer />
   </div>
 }
