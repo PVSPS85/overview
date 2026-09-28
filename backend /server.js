@@ -878,7 +878,8 @@ app.put('/api/profile', requireAuth, requireAdmin, async (req, res) => {
     }
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update profile' });
+    console.error('Profile update failed:', error);
+    res.status(500).json({ error: 'Failed to update profile', details: error.message || error });
   }
 });
 
