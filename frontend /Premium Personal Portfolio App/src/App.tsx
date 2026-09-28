@@ -739,6 +739,7 @@ function Certifications() {
               {cert.signedUrl && !cert.signedUrl.toLowerCase().includes('.pdf') && !cert.signedUrl.includes('pdf?') ? (
                 <img 
                   src={cert.signedUrl} 
+                  loading="lazy"
                   alt={cert.title} 
                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} 
                 />
@@ -772,7 +773,7 @@ function Certifications() {
           <button className="modal-close" onClick={() => setActive(null)}><Icon name="x" /></button>
           {active.signedUrl ? (
             active.signedUrl.toLowerCase().endsWith('.pdf') || active.signedUrl.includes('pdf?') ? (
-              <iframe src={active.signedUrl} className="big-certificate" style={{ border: 'none', height: '600px', padding: 0 }} title={active.title} />
+              <iframe src={active.signedUrl} loading="lazy" className="big-certificate" style={{ border: 'none', height: 'auto', aspectRatio: '1.414', padding: 0 }} title={active.title} />
             ) : (
               <img src={active.signedUrl} alt={active.title} className="big-certificate" style={{ padding: 0, objectFit: 'contain' }} />
             )
