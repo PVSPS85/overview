@@ -973,6 +973,7 @@ function AdminDashboard({ session }: { session: Session | null }) {
   const [showForm, setShowForm] = useState(false)
   const [editingEntry, setEditingEntry] = useState<any | null>(null)
   const [toasts, setToasts] = useState<ToastData[]>([])
+  const [refreshKey, setRefreshKey] = useState(0)
   const addToast = useCallback((type: ToastData["type"], title: string, msg?: string) => {
     setToasts(t => [...t, { id: ++_tid, type, title, msg }])
   }, [])
@@ -992,7 +993,7 @@ function AdminDashboard({ session }: { session: Session | null }) {
       fetch(`${base}/api/admin/hackathons`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
       fetch(`${base}/api/admin/achievements`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
     ]).then(([p, c, h, a]) => setOverviewCounts({ projects: p, certifications: c, hackathons: h, achievements: a }))
-  }, [session, section])
+  }, [session, section, refreshKey])
   const cards = [
     ["Certifications", String(overviewCounts.certifications).padStart(2, '0'), "Total entries", "award"]
   ] as [string, string, string, IconName][]
@@ -1084,16 +1085,16 @@ function AdminDashboard({ session }: { session: Session | null }) {
       ) : section === "Messages" ? (
         <MessagesAdmin session={session} addToast={addToast} />
       ) : (
-        <ManagementPage section={section} session={session} onAdd={openNewEntry} onEdit={(project) => { setEditingEntry(project); setShowForm(true) }} />
+        <ManagementPage section={section} session={session} refreshKey={refreshKey} onAdd={openNewEntry} onEdit={(project) => { setEditingEntry(project); setShowForm(true) }} />
       )}
 
-      {showForm && <AdminForm section={section} session={session} entry={editingEntry} onClose={() => { setShowForm(false); setEditingEntry(null) }} onSave={() => addToast("success", editingEntry ? "Changes saved" : "Entry published", editingEntry ? "Your updates are now live." : "New entry has been published.")} />}
+      {showForm && <AdminForm section={section} session={session} entry={editingEntry} onClose={() => { setShowForm(false); setEditingEntry(null) }} onSave={() => { addToast("success", editingEntry ? "Changes saved" : "Entry published", editingEntry ? "Your updates are now live." : "New entry has been published."); setRefreshKey(prev => prev + 1); }} />}
     </main>
     <Toasts items={toasts} dismiss={dismissToast} />
   </div>
 }
 
-function ManagementPage({ section, session, onAdd, onEdit }: { section: string; session: Session | null; onAdd: () => void; onEdit: (entry: any) => void }) {
+function ManagementPage({ section, session, refreshKey, onAdd, onEdit }: { section: string; session: Session | null; refreshKey: number; onAdd: () => void; onEdit: (entry: any) => void }) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -1120,7 +1121,7 @@ function ManagementPage({ section, session, onAdd, onEdit }: { section: string; 
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, refreshKey])
 
   const handleDelete = async (id: string) => {
     if (!session || !confirm(`Are you sure you want to delete this ${section === "Resume" ? "resume" : section.slice(0, -1).toLowerCase()}?`)) return
