@@ -205,6 +205,26 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
 });
 
 
+const uploadToSupabase = async (supabase, file, bucket, pathPrefix, maxSizeMB, allowedExts, allowedMimes) => {
+  if (!file) return null;
+  const maxSize = maxSizeMB * 1024 * 1024;
+  if (file.size > maxSize) throw new Error(`File size exceeds limit of ${maxSizeMB}MB`);
+  if (!allowedMimes.includes(file.mimetype)) throw new Error(`Invalid MIME type: ${file.mimetype}`);
+
+  const ext = file.originalname.split('.').pop().toLowerCase();
+  if (!allowedExts.includes(ext)) throw new Error('Unsupported file extension.');
+  if (ext === 'pdf' && file.mimetype !== 'application/pdf') throw new Error('MIME type mismatch.');
+
+  const path = `${pathPrefix}/${crypto.randomUUID()}.${ext}`;
+  const { data, error } = await supabase.storage.from(bucket).upload(path, file.buffer, {
+    contentType: file.mimetype,
+    upsert: false
+  });
+
+  if (error) throw error;
+  return path;
+};
+
 // ==========================================
 // PROTECTED ENDPOINTS (ADMIN ONLY)
 // ==========================================
