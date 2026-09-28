@@ -1070,7 +1070,7 @@ function PublicPortfolio() {
   return <div className="public-site">
     <ScrollProgress />
     <Header />
-    <main><Hero /><Currently /><About /><Projects /><Certifications /><AskPranav /><ContactForm /></main>
+    <main><Hero /><About /><Projects /><Certifications /><AskPranav /><ContactForm /></main>
     <Footer />
   </div>
 }
