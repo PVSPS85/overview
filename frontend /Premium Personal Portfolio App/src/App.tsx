@@ -2,6 +2,10 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { Session } from "@supabase/supabase-js"
 import { supabase } from "./supabaseClient"
 
+// Keep-alive ping: wake up Render backend before user needs it
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+fetch(`${API_BASE}/api/health`).catch(() => {})
+
 type IconName =
   | "arrow"
   | "award"
@@ -242,57 +246,13 @@ function Header() {
   )
 }
 
-function Hero() {
+function Hero({ profile, photoUrl, resumeUrl }: { profile: Profile | null; photoUrl: string | null; resumeUrl: string | null }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const reduced = useReducedMotion()
   const heroRef = useRef<HTMLElement>(null)
   const bgRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const portraitContainerRef = useRef<HTMLDivElement>(null)
-  
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`)
-        if (!res.ok) return
-        const data = await res.json()
-        if (data && data.full_name) {
-          setProfile(data)
-          if (data.profile_photo_url) {
-            const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=profile-media&path=${data.profile_photo_url}`)
-            if (sRes.ok) {
-              const { signedUrl } = await sRes.json()
-              setPhotoUrl(signedUrl)
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-    const fetchResume = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/resume/current`)
-        if (!res.ok) return
-        const data = await res.json()
-        if (data && data.resume_url) {
-          const sRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=resumes&path=${data.resume_url}`)
-          if (sRes.ok) {
-            const { signedUrl } = await sRes.json()
-            setResumeUrl(signedUrl)
-          }
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-    fetchProfile()
-    fetchResume()
-  }, [])
 
   const onMove = (e: React.MouseEvent<HTMLElement>) => {
     if (reduced) return
@@ -507,43 +467,11 @@ function About({ profile }: { profile: Profile | null }) {
   )
 }
 
-function Certifications() {
+function Certifications({ certs: initialCerts, loading: initialLoading }: { certs: Certification[]; loading: boolean }) {
   const [ref, visible] = useReveal(0.1)
   const [active, setActive] = useState<Certification | null>(null)
-  const [certs, setCerts] = useState<Certification[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchCerts = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/certifications`)
-        let data: Certification[] = await res.json()
-        
-        // Fetch signed URLs for certificates
-        data = await Promise.all(data.map(async (cert) => {
-          if (cert.certificate_url) {
-            try {
-              const urlRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/storage/signed-url?bucket=certificates&path=${encodeURIComponent(cert.certificate_url)}`)
-              if (urlRes.ok) {
-                const urlData = await urlRes.json()
-                cert.signedUrl = urlData.signedUrl
-              }
-            } catch (e) {
-              console.error("Failed to fetch signed URL for cert", cert.id)
-            }
-          }
-          return cert
-        }))
-        
-        setCerts(data)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchCerts()
-  }, [])
+  const certs = initialCerts
+  const loading = initialLoading
 
   return (
     <section ref={ref} className="section wrap" id="certifications">
@@ -697,20 +625,34 @@ function Footer() {
 
 function PublicPortfolio() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null)
+  const [certs, setCerts] = useState<Certification[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/profile`)
+    // Single request fetches everything in parallel on the backend
+    fetch(`${API_BASE}/api/public-data`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.full_name) setProfile(data)
+        if (data.profile?.full_name) setProfile(data.profile)
+        if (data.photoUrl) setPhotoUrl(data.photoUrl)
+        if (data.resumeUrl) setResumeUrl(data.resumeUrl)
+        if (Array.isArray(data.certifications)) setCerts(data.certifications)
       })
       .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
   return <div className="public-site">
     <ScrollProgress />
     <Header />
-    <main><Hero /><About profile={profile} /><Certifications /><ContactForm /></main>
+    <main>
+      <Hero profile={profile} photoUrl={photoUrl} resumeUrl={resumeUrl} />
+      <About profile={profile} />
+      <Certifications certs={certs} loading={loading} />
+      <ContactForm />
+    </main>
     <Footer />
   </div>
 }

@@ -141,6 +141,82 @@ app.get('/api/storage/signed-url', async (req, res) => {
   }
 });
 
+// GET All Public Data in One Shot (profile + photo + resume + certifications with signed URLs)
+// This replaces 5-7 separate requests with a single parallel call for fast page loads.
+app.get('/api/public-data', async (req, res) => {
+  try {
+    const adminSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY
+    );
+
+    // Fetch all data in parallel
+    const [profileResult, resumeResult, certsResult] = await Promise.all([
+      adminSupabase.from('profile').select('*').limit(1).maybeSingle(),
+      adminSupabase.from('resumes').select('*').eq('visibility', 'Published').order('published_at', { ascending: false }).limit(1).maybeSingle(),
+      adminSupabase.from('certifications')
+        .select('id, title, issuer, issue_date, category, mark, certificate_url, credential_url, published_at')
+        .eq('visibility', 'Published')
+        .order('created_at', { ascending: false })
+    ]);
+
+    const profile = profileResult.data || null;
+    const resume = resumeResult.data || null;
+    const certs = certsResult.data || [];
+
+    // Generate all signed URLs in parallel
+    const signedUrlPromises = [];
+
+    if (profile?.profile_photo_url) {
+      signedUrlPromises.push(
+        adminSupabase.storage.from('profile-media').createSignedUrl(profile.profile_photo_url, 3600)
+          .then(r => ({ key: 'photoUrl', value: r.data?.signedUrl || null }))
+          .catch(() => ({ key: 'photoUrl', value: null }))
+      );
+    }
+
+    if (resume?.resume_url) {
+      signedUrlPromises.push(
+        adminSupabase.storage.from('resumes').createSignedUrl(resume.resume_url, 3600)
+          .then(r => ({ key: 'resumeUrl', value: r.data?.signedUrl || null }))
+          .catch(() => ({ key: 'resumeUrl', value: null }))
+      );
+    }
+
+    for (const cert of certs) {
+      if (cert.certificate_url) {
+        signedUrlPromises.push(
+          adminSupabase.storage.from('certificates').createSignedUrl(cert.certificate_url, 3600)
+            .then(r => ({ key: `cert_${cert.id}`, value: r.data?.signedUrl || null }))
+            .catch(() => ({ key: `cert_${cert.id}`, value: null }))
+        );
+      }
+    }
+
+    const signedResults = await Promise.all(signedUrlPromises);
+    const urls = Object.fromEntries(signedResults.map(r => [r.key, r.value]));
+
+    // Attach signed URLs to certs
+    const certsWithUrls = certs.map(cert => ({
+      ...cert,
+      signedUrl: urls[`cert_${cert.id}`] || null
+    }));
+
+    res.status(200).json({
+      profile,
+      photoUrl: urls['photoUrl'] || null,
+      resume,
+      resumeUrl: urls['resumeUrl'] || null,
+      certifications: certsWithUrls
+    });
+  } catch (error) {
+    console.error('Error fetching public data:', error.message);
+    res.status(500).json({ error: 'Failed to fetch public data' });
+  }
+});
+
+
+
 // POST Contact Message
 app.post('/api/contact', contactLimiter, async (req, res) => {
   const { name, email, message } = req.body;
