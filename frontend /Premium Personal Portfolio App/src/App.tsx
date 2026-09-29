@@ -662,7 +662,7 @@ const adminSections = [
 ] as [string, IconName][]
 
 function AdminLogin() {
-  const [email, setEmail] = useState("pvsaipranav2007@gmail.com")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
