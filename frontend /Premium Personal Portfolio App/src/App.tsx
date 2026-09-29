@@ -982,20 +982,18 @@ function AdminDashboard({ session }: { session: Session | null }) {
     setEditingEntry(null)
     setShowForm(true)
   }
-  const [overviewCounts, setOverviewCounts] = useState<Record<string, number>>({ projects: 0, certifications: 0, hackathons: 0, achievements: 0 })
+  const [certCount, setCertCount] = useState(0)
   useEffect(() => {
     if (!session) return
     const headers = { 'Authorization': `Bearer ${session.access_token}` }
     const base = import.meta.env.VITE_API_URL || 'http://localhost:5001'
-    Promise.all([
-      fetch(`${base}/api/admin/projects`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
-      fetch(`${base}/api/admin/certifications`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
-      fetch(`${base}/api/admin/hackathons`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
-      fetch(`${base}/api/admin/achievements`, { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d.length : 0).catch(() => 0),
-    ]).then(([p, c, h, a]) => setOverviewCounts({ projects: p, certifications: c, hackathons: h, achievements: a }))
+    fetch(`${base}/api/admin/certifications`, { headers })
+      .then(r => r.json())
+      .then(d => setCertCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => setCertCount(0))
   }, [session, section, refreshKey])
   const cards = [
-    ["Certifications", String(overviewCounts.certifications).padStart(2, '0'), "Total entries", "award"]
+    ["Certifications", String(certCount).padStart(2, '0'), "Total entries", "award"]
   ] as [string, string, string, IconName][]
 
   return <div className="admin">
@@ -1186,10 +1184,10 @@ function ManagementPage({ section, session, refreshKey, onAdd, onEdit }: { secti
 }
 
 function AdminForm({ section, session, entry, onClose, onSave }: { section: string; session: Session | null; entry?: any; onClose: () => void; onSave?: () => void }) {
-  const isProject = section === "Projects"
+  const isProject = false
   const isCert = section === "Certifications"
-  const isHackathon = section === "Hackathons"
-  const isAchievement = section === "Achievements"
+  const isHackathon = false
+  const isAchievement = false
   const isResume = section === "Resume"
   
   const [formData, setFormData] = useState<any>(entry || {
