@@ -8,6 +8,8 @@ const { requireAuth, requireAdmin } = require('./middleware/auth');
 const multer = require('multer');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123'); // fallback to prevent crash if env not set
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -248,10 +250,11 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     // 2. Attempt Email Delivery
     
     try {
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.CONTACT_DESTINATION_EMAIL) {
-        await transporter.sendMail({
-          from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
+      if (process.env.RESEND_API_KEY && process.env.CONTACT_DESTINATION_EMAIL) {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
           to: process.env.CONTACT_DESTINATION_EMAIL,
+          replyTo: email,
           subject: 'New message from your portfolio',
           text: `Visitor Name: ${name}\nVisitor Email: ${email}\n\nMessage:\n${message}\n\nTimestamp: ${new Date().toISOString()}`
         });
@@ -353,6 +356,52 @@ app.delete('/api/admin/messages/:id', requireAuth, requireAdmin, async (req, res
   } catch (error) {
     console.error('Error deleting message:', error.message);
     res.status(500).json({ error: 'Failed to delete message' });
+  }
+});
+
+// POST Reply to Message
+app.post('/api/admin/messages/:id/reply', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const supabase = getAuthClient(req);
+    const { replyMessage } = req.body;
+    
+    if (!replyMessage || typeof replyMessage !== 'string' || replyMessage.trim() === '') {
+      return res.status(400).json({ error: 'Valid reply message is required' });
+    }
+
+    // 1. Fetch original message details
+    const { data: originalMessage, error: fetchError } = await supabase
+      .from('contact_messages')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchError || !originalMessage) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // 2. Send email via Resend
+    if (!process.env.RESEND_API_KEY) {
+      return res.status(500).json({ error: 'Resend API key is not configured' });
+    }
+
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+      to: originalMessage.sender_email,
+      subject: `Re: Your message to Pranav's Portfolio`,
+      text: replyMessage
+    });
+
+    // 3. Update message status to replied (if you have such a status) or just mark handled
+    await supabase
+      .from('contact_messages')
+      .update({ is_read: true }) // You could also add a 'replied' boolean column in the DB later
+      .eq('id', req.params.id);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error replying to message:', error);
+    res.status(500).json({ error: 'Failed to send reply' });
   }
 });
 

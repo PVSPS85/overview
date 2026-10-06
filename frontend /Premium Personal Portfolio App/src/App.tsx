@@ -816,6 +816,8 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
   const [messages, setMessages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [viewing, setViewing] = useState<any>(null)
+  const [replyText, setReplyText] = useState("")
+  const [isReplying, setIsReplying] = useState(false)
 
   const fetchMessages = useCallback(async () => {
     if (!session) return
@@ -859,6 +861,29 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
     } catch (e) { console.error(e) }
   }
 
+
+  const sendReply = async (id: string) => {
+    if (!session || !replyText.trim()) return
+    setIsReplying(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/admin/messages/${id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ replyMessage: replyText })
+      })
+      if (!res.ok) throw new Error("Failed to send reply")
+      addToast('success', 'Reply sent successfully')
+      setReplyText("")
+      setViewing(null)
+      fetchMessages()
+    } catch (e) {
+      console.error(e)
+      addToast('error', 'Failed to send reply')
+    } finally {
+      setIsReplying(false)
+    }
+  }
+
   return <div className="management">
     <div className="management-top">
       <div><h2>Messages</h2><p>View contact messages and inquiries.</p></div>
@@ -874,9 +899,20 @@ function MessagesAdmin({ session, addToast }: { session: Session | null; addToas
         <div style={{ padding: '20px', background: 'var(--bg-app)', borderRadius: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
           {viewing.message}
         </div>
-        <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-          <Button icon="check" onClick={() => { toggleRead(viewing.id, viewing.is_read); setViewing(null) }}>Mark as {viewing.is_read ? 'unread' : 'handled'}</Button>
-          <button onClick={() => deleteMessage(viewing.id)} style={{ padding: '10px 20px', color: 'red', border: '1px solid red', borderRadius: '30px', background: 'transparent', cursor: 'pointer' }}>Delete</button>
+        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <textarea 
+            value={replyText} 
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Type your reply here..." 
+            style={{ width: '100%', minHeight: '100px', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-primary)', resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <Button icon="mail" onClick={() => sendReply(viewing.id)}>
+              {isReplying ? 'Sending...' : 'Send Reply'}
+            </Button>
+            <Button icon="check" onClick={() => { toggleRead(viewing.id, viewing.is_read); setViewing(null) }}>Mark as {viewing.is_read ? 'unread' : 'handled'}</Button>
+            <button onClick={() => deleteMessage(viewing.id)} style={{ padding: '10px 20px', color: 'red', border: '1px solid red', borderRadius: '30px', background: 'transparent', cursor: 'pointer' }}>Delete</button>
+          </div>
         </div>
         <div style={{ marginTop: '15px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           Delivery Status: {viewing.delivery_status} {viewing.delivery_error && `(${viewing.delivery_error})`}
@@ -1074,6 +1110,29 @@ function ManagementPage({ section, session, refreshKey, onAdd, onEdit }: { secti
       fetchData()
     } catch (e) {
       console.error(e)
+    }
+  }
+
+
+  const sendReply = async (id: string) => {
+    if (!session || !replyText.trim()) return
+    setIsReplying(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/admin/messages/${id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ replyMessage: replyText })
+      })
+      if (!res.ok) throw new Error("Failed to send reply")
+      addToast('success', 'Reply sent successfully')
+      setReplyText("")
+      setViewing(null)
+      fetchMessages()
+    } catch (e) {
+      console.error(e)
+      addToast('error', 'Failed to send reply')
+    } finally {
+      setIsReplying(false)
     }
   }
 
